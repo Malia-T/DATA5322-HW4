@@ -1,0 +1,26 @@
+---
+title: "Written HW 4 - Wine Quality"
+author: "Malia Cortez, Ava Delanty"
+date: "2023-05-23"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(dplyr)
+library(RSpectra)
+library(plotly)
+library(gridExtra)
+library(softImpute)
+```
+
+## Load in Data
+
+```{r chunk1}
+
+```
+
+## Models
+
+```{r chunk2}
+```
