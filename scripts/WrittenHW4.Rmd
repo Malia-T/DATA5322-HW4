@@ -12,15 +12,65 @@ library(RSpectra)
 library(plotly)
 library(gridExtra)
 library(softImpute)
+library(readr)
+library(ggplot2)
 ```
 
 ## Load in Data
 
 ```{r chunk1}
+red <- read.csv('/Users/aves/DATA5322-HW4/data/winequality-red.csv',sep=',')
+white <-  read.csv('/Users/aves/DATA5322-HW4/data/winequality-white.csv',sep=',')
+```
 
+## Exploratory Analysis 
+
+```{r chunk2}
+red
 ```
 
 ## Models
 
-```{r chunk2}
+Unsupervised:
+
+The predictor variable is quality 
+```{r}
+unique(red$quality)
 ```
+Let's assign 3-5 as low quality wine and 6-8 as high quality wine. 
+
+PCA:
+
+
+
+
+K-means clustering:
+Red Wine omitting NAs and deselecting quality predictor variable and scaling the data frame
+```{r}
+red_data = red %>% na.omit() %>% select(-c(quality))
+scaled <- scale(red_data)
+```
+
+```{r}
+km.out <- kmeans(scaled, 2, nstart = 20)
+plot(scaled[,11],scaled[,10],col = (km.out$cluster + 1),
+    main = "K-Means Clustering Results with K = 2",
+    xlab = "alcohol", ylab = "sulphates", pch = 20, cex = 2)
+km.out$tot.withinss
+```
+The total within group sum of squares is 14321.16
+
+Plotting the proportion of variance explained using the d vector. 
+```{r}
+S <- svd(scaled)
+plot(S$d/sum(S$d))
+```
+
+Hierarchical Clustering:
+
+
+
+
+
+Supervised Model: 
+
