@@ -51,22 +51,89 @@ red_data = red %>% na.omit() %>% select(-c(quality))
 scaled <- scale(red_data)
 ```
 
+Check to see how many clusters we should perform:
 ```{r}
-km.out <- kmeans(scaled, 2, nstart = 20)
+wss<-(nrow(red_data)-1)*sum(apply(red_data,2,var))
+for(i in 1:15) wss[i]<-sum(kmeans(red_data,centers=i)$withinss)
+plot(1:15,wss,type='b',xlab="Number of Clusters",ylab='Within groups sum of squares')
+```
+
+```{r}
+set.seed(2)
+km.out <- kmeans(scaled, 6, nstart = 20)
 plot(scaled[,11],scaled[,10],col = (km.out$cluster + 1),
-    main = "K-Means Clustering Results with K = 2",
+    main = "K-Means Clustering Results with K = 6",
     xlab = "alcohol", ylab = "sulphates", pch = 20, cex = 2)
 km.out$tot.withinss
 ```
-The total within group sum of squares is 14321.16
+The total within group sum of squares is 9358.224
 
 Plotting the proportion of variance explained using the d vector. 
 ```{r}
 S <- svd(scaled)
-plot(S$d/sum(S$d))
+plot(S$d/sum(S$d), type ="b",ylab = "Normalized Singular Values",
+     main = "Singular Values Plot of Red Wine Data")
+```
+Perform k-means on the transformed locations of the data in the singular vector space:
+```{r}
+set.seed(1000)
+sv.km <- kmeans(S$u, 6, nstart = 20)
+plot(scaled[,11],scaled[,10],col = (sv.km$cluster + 1),
+     main = "K-Means Clustering Results with K = 6",
+    xlab = "alcohol", ylab = "sulphates", pch = 20, cex = 2)
+sv.km$tot.withinss
+```
+7.856126
+
+```{r}
+set.seed(1000)
+sv.km <- kmeans(S$u, 6, nstart = 20)
+plot(scaled[,1],scaled[,4],col = (sv.km$cluster + 1),
+     main = "K-Means Clustering Results with K = 6",
+    xlab = "fixed.acidity", ylab = "residual.sugar", pch = 20, cex = 2)
+sv.km$tot.withinss
+```
+Create a confusion matrix between the VD-based clusters and the wine quality:
+```{r}
+confusion_matrix <- table(sv.km$cluster, red$quality)
+confusion_matrix 
 ```
 
+
 Hierarchical Clustering:
+```{r}
+hc.complete <- hclust(dist(red_data), method = "complete")
+hc.average <- hclust(dist(red_data), method = "average")
+hc.single <- hclust(dist(red_data), method = "single")
+hc.ward <- hclust(dist(red_data), method = "ward.D2")
+```
+
+```{r}
+par(mfrow = c(1, 3))
+plot(hc.complete, main = "Complete Linkage",
+    xlab = "", sub = "", cex = .9)
+plot(hc.average, main = "Average Linkage",
+    xlab = "", sub = "", cex = .9)
+plot(hc.single, main = "Single Linkage",
+    xlab = "", sub = "", cex = .9)
+plot(hc.ward, main = "Ward Linkage",
+    xlab = "", sub = "", cex = .9)
+```
+```{r}
+xsc <- scale(red_data)
+hc.complete2 <- hclust(dist(xsc), method = "complete")
+plot(hclust(dist(xsc), method = "complete"),
+    main = "Hierarchical Clustering with Scaled Features")
+```
+```{r}
+xsc  <- matrix(rnorm(30 * 3), ncol = 3)
+dd <- as.dist(1 - cor(t(xsc)))
+plot(hclust(dd, method = "complete"),
+    main = "Complete Linkage with Correlation-Based Distance",
+    xlab = "", sub = "")
+```
+
+
 
 
 
