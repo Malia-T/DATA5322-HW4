@@ -66,7 +66,12 @@ pve <- pr.out$sdev^2 / sum(pr.out$sdev^2)
 
 plot(pve, ylab = "Proportion of Variance Explained", xlab = "Principal Component", main = "Variance by PC in Red Wine Data")
 
-# 
+# get most weighted variables
+## for the first PC, having more fixed acidity, citric acid, pH, and density are all highly weighted
+pr.out$rotation[,1] %>% sort(decreasing=TRUE)
+
+## second PC
+pr.out$rotation[,2] %>% abs() sort(decreasing = TRUE)
 ```
 
 
