@@ -21,6 +21,9 @@ library(ggplot2)
 ```{r chunk1}
 red <- read.csv('/Users/aves/DATA5322-HW4/data/winequality-red.csv',sep=',')
 white <-  read.csv('/Users/aves/DATA5322-HW4/data/winequality-white.csv',sep=',')
+
+red2 <- read.csv('../data/winequality-red.csv', sep = ",")
+white2 <- read.csv('../data/winequality-white.csv', sep = ",")
 ```
 
 ## Exploratory Analysis 
@@ -39,7 +42,33 @@ unique(red$quality)
 ```
 Let's assign 3-5 as low quality wine and 6-8 as high quality wine. 
 
-PCA:
+### PCA:
+```{r}
+# red wine X input
+quality.counts <- red2 %>% 
+  group_by(quality) %>%
+  count()
+
+ggplot(quality.counts, mapping = aes(quality, n)) +
+  geom_col() +
+  labs(x = "Quality", y = "Count", title = "Count of Observations for Category of Quality")
+
+X <- red2 %>% select(-quality)
+
+# scale data
+scaled_X <- scale(X)
+
+# use PCA with scaled data
+pr.out <- prcomp(X, scale = TRUE)
+
+# get percent variance explained by principal components
+pve <- pr.out$sdev^2 / sum(pr.out$sdev^2)
+
+plot(pve, ylab = "Proportion of Variance Explained", xlab = "Principal Component", main = "Variance by PC in Red Wine Data")
+
+# 
+```
+
 
 
 
