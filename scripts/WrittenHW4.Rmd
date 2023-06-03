@@ -14,6 +14,8 @@ library(gridExtra)
 library(softImpute)
 library(readr)
 library(ggplot2)
+library(tree)
+library(randomForest)
 ```
 
 ## Load in Data
@@ -37,7 +39,7 @@ The predictor variable is quality
 ```{r}
 unique(red$quality)
 ```
-Let's assign 3-5 as low quality wine and 6-8 as high quality wine. 
+Let's assign 3-4 as low quality wine, 5-6 as average quality wine, and 7-8 as high quality wine. 
 
 PCA:
 
@@ -53,10 +55,21 @@ scaled <- scale(red_data)
 
 Check to see how many clusters we should perform:
 ```{r}
-wss<-(nrow(red_data)-1)*sum(apply(red_data,2,var))
-for(i in 1:15) wss[i]<-sum(kmeans(red_data,centers=i)$withinss)
-plot(1:15,wss,type='b',xlab="Number of Clusters",ylab='Within groups sum of squares')
+wss<-(nrow(scaled)-1)*sum(apply(scaled,2,var))
+for(i in 1:12) wss[i]<-sum(kmeans(scaled,centers=i)$withinss)
+plot(1:12,wss,type='b',xlab="Number of Clusters",ylab='Within groups sum of squares')
 ```
+```{r}
+k=1:12
+wss = c()
+for(i in 1:length(k)){
+  set.seed(4)
+  km.out <- kmeans(scaled,k[i],nstart=20)
+  wss[i] = km.out$tot.withinss
+}
+plot(k,wss)
+```
+
 
 ```{r}
 set.seed(2)
@@ -99,6 +112,35 @@ confusion_matrix <- table(sv.km$cluster, red$quality)
 confusion_matrix 
 ```
 
+Exploratory analysis using clusters:
+```{r}
+R = red %>% na.omit()
+R$quality <- as.factor(R$quality)
+head(R)
+```
+```{r}
+ggplot(R, aes(x=fixed.acidity, y=density, color=quality)) + geom_point()
+```
+```{r}
+set.seed(2)
+red.km <- kmeans(select(R, -c(quality)), 6, nstart = 20)
+R$clusters = as.factor(red.km $cluster)
+ggplot(R, aes(x=fixed.acidity, y=density, color=clusters, shape=quality)) + geom_point()
+```
+```{r}
+Rscale <-  R %>% select(-c(clusters,quality)) %>% scale()
+S <- svd(Rscale)
+plot(S$u[,1], S$u[,8], col=R$quality)
+```
+Now we apply k-means on the locations of the data in singular vector space. We plot the clusters, agnostic to the quality of the wine. This seems closer to the quality seperations:
+```{r}
+set.seed(2)
+sv.km <- kmeans(S$u, 6, nstart = 20)
+R$svclusters = as.factor(sv.km$cluster)
+ggplot(R, aes(x=fixed.acidity, y=density, color=svclusters)) + geom_point()
+```
+
+
 
 Hierarchical Clustering:
 ```{r}
@@ -134,10 +176,128 @@ plot(hclust(dd, method = "complete"),
 ```
 
 
-
-
-
-
-
 Supervised Model: 
+
+Decision Trees:
+Multi-class
+
+Creating categories for quality :
+```{r}
+red_data2 <- red%>%
+  mutate(quality = factor(quality , levels = c(3,4,5,6,7,8),labels = c("low quality","low quality","average quality","average quality","high quality","high quality")))
+red_data2 <- red_data2 %>%
+  mutate(quality = relevel(quality, ref = "average quality"))
+
+levels(red_data2$quality) <- c("low quality", "average quality", "high quality")
+```
+```{r}
+levels(red_data2$quality)
+```
+
+```{r}
+tree.red <- tree(quality~.-quality,red_data2)
+summary(tree.red)
+```
+
+We get a training error rate of .15 or 15% 
+
+```{r}
+plot(tree.red)
+text(tree.red,cex = 0.6,pretty=0)
+```
+```{r}
+tree.red
+```
+
+Let's make a train and test set:
+```{r}
+#training and test data 
+set.seed(1)
+train <- sample(nrow(red_data2), nrow(red_data2)*.7)
+red.train <- red_data2[train,]
+red.test <- red_data2[-train,]
+```
+```{r}
+tree.red2 <- tree(quality~.-quality,red_data2, subset = train)
+summary(tree.red2)
+```
+```{r}
+plot(tree.red2)
+text(tree.red2,cex = 0.6, pretty = 0)
+```
+```{r}
+tree.red2
+```
+```{r}
+set.seed(1)
+test <- red_data2$quality[-train]
+tree.pred <- predict(tree.red2, red.test,
+    type = "class")
+table <- table(tree.pred, test)
+table
+mean(tree.pred == test)
+accuracy_Test <- sum(diag(table)) / sum(table)
+print(paste('Accuracy for test', accuracy_Test))
+```
+Pruning the tree:
+```{r}
+set.seed(2)
+cv.red <- cv.tree(tree.red2, FUN = prune.tree)
+names(cv.red)
+```
+```{r}
+cv.red
+```
+```{r}
+par(mfrow = c(1, 2))
+plot(cv.red$size, cv.red$dev, type = "b")
+plot(cv.red$k, cv.red$dev, type = "b")
+```
+```{r}
+optimal_K <- which.min(cv.red$dev)
+prune.red <- prune.tree(tree.red2, best = optimal_K)
+plot(prune.red)
+text(prune.red,cex = 0.6, pretty = 0)
+```
+```{r}
+summary(prune.red)
+```
+
+```{r}
+tree.pred <- predict(prune.red, red.test,
+    type = "class")
+table(tree.pred, test)
+mean(tree.pred == test)
+accuracy_Test <- sum(diag(table)) / sum(table)
+```
+Pruning did worse with a slightly lower accuracy of 82.91%
+
+Bagging and random forest:
+
+```{r}
+bag.red <- randomForest(quality ~ .-quality,red_data2, subset = train, mtry = 12, importance = TRUE)
+bag.red
+```
+
+```{r}
+yhat.bag <- predict(bag.red, newdata = red_data2[-train,])
+yhat.bag.num <- as.numeric(yhat.bag)
+test.num <- as.numeric(test)
+
+# Check for any non-numeric values in yhat.bag.num or test.num
+any(!is.na(yhat.bag.num) & !is.numeric(yhat.bag.num))
+any(!is.na(test.num) & !is.numeric(test.num))
+
+# Calculate the mean squared error
+mean((yhat.bag.num - test.num)^2)
+```
+```{r}
+importance(bag.red)
+```
+```{r}
+varImpPlot(bag.red)
+```
+Alcohol, Sulphates, and volatile.acidity are the important variables. 
+
+
 
