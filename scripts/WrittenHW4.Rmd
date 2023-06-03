@@ -45,6 +45,7 @@ Let's assign 3-5 as low quality wine and 6-8 as high quality wine.
 ### PCA:
 ```{r}
 # red wine X input
+# get counts for each quality category
 quality.counts <- red2 %>% 
   group_by(quality) %>%
   count()
@@ -55,7 +56,7 @@ ggplot(quality.counts, mapping = aes(quality, n)) +
 
 X <- red2 %>% select(-quality)
 
-# scale data
+# scale data for SVD
 scaled_X <- scale(X)
 
 # use PCA with scaled data
@@ -67,11 +68,18 @@ pve <- pr.out$sdev^2 / sum(pr.out$sdev^2)
 plot(pve, ylab = "Proportion of Variance Explained", xlab = "Principal Component", main = "Variance by PC in Red Wine Data")
 
 # get most weighted variables
-## for the first PC, having more fixed acidity, citric acid, pH, and density are all highly weighted
+## for the first PC, fixed acidity, citric acid, pH, and density are all highly weighted
+## pH is negatively weighted, which we can see when we remove the absolute value
 pr.out$rotation[,1] %>% sort(decreasing=TRUE)
+pr.out$rotation[,1] %>% abs() %>% sort(decreasing=TRUE)
 
 ## second PC
-pr.out$rotation[,2] %>% abs() sort(decreasing = TRUE)
+## total sulfur dioxide, free sulfur dioxide, volatile acidity, residual sugar all highly weighted
+pr.out$rotation[,2] %>% abs() %>% sort(decreasing = TRUE)
+
+# plot along first two principal components
+toplot <- data.frame(pr.out$x)
+
 ```
 
 
