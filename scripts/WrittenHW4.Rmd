@@ -14,8 +14,10 @@ library(gridExtra)
 library(softImpute)
 library(readr)
 library(ggplot2)
+#For decision Trees
 library(tree)
 library(randomForest)
+library(gbm)
 ```
 
 ## Load in Data
@@ -194,6 +196,7 @@ levels(red_data2$quality) <- c("low quality", "average quality", "high quality")
 levels(red_data2$quality)
 ```
 
+
 ```{r}
 tree.red <- tree(quality~.-quality,red_data2)
 summary(tree.red)
@@ -295,9 +298,105 @@ mean((yhat.bag.num - test.num)^2)
 importance(bag.red)
 ```
 ```{r}
-varImpPlot(bag.red)
+varImpPlot(bag.red,main = "Variable Importance Plot for Wine Quality")
 ```
 Alcohol, Sulphates, and volatile.acidity are the important variables. 
+
+```{r}
+plot(bag.red)
+```
+
+```{r}
+red_data2
+```
+
+Boosting:
+
+```{r}
+#training and test data 
+set.seed(1)
+train <- sample(nrow(red), nrow(red)*.7)
+red.train <- red[train,]
+red.test <- red[-train,]
+```
+
+```{r}
+set.seed(1)
+boost.red <- gbm(quality ~ .-quality, data = red[train, ],
+    distribution = "gaussian", n.trees = 1000,
+    interaction.depth = 4)
+summary(boost.red)
+```
+```{r}
+testred <- red[-train,"quality"]
+yhat.boost <- predict(boost.red,
+    newdata = red[-train, ], n.trees = 1000)
+mean((yhat.boost - testred)^2)
+```
+Changing shrinkage:
+```{r}
+set.seed(1)
+boost.red <- gbm(quality ~ .-quality, data = red[train, ],
+    distribution = "gaussian", n.trees = 1000,
+    interaction.depth = 4, shrinkage = .01,verbose = F)
+summary(boost.red)
+yhat.boost <- predict(boost.red,
+    newdata = red[-train, ], n.trees = 1000)
+mean((yhat.boost - testred)^2)
+```
+Importance: The "alcohol" content of the wine is a critical factor in determining its quality. Wines with higher alcohol content tend to be associated with higher quality or vice versa.
+
+Discrimination: The "alcohol" variable effectively differentiates between different quality levels of wines. Wines with lower alcohol content are more likely to be classified as low quality, while wines with higher alcohol content are more likely to be classified as high quality.
+
+Correlation: The "alcohol" content is strongly correlated with other important predictors or aspects related to wine quality. Its high vrel.inf value suggests that it captures a significant portion of the variability in the response variable.
+
+
+Changing num of trees:
+```{r}
+set.seed(1)
+boost.red <- gbm(quality ~ .-quality, data = red[train, ],
+    distribution = "gaussian", n.trees = 100,
+    interaction.depth = 4)
+summary(boost.red)
+yhat.boost <- predict(boost.red,
+    newdata = red[-train, ], n.trees = 100)
+mean((yhat.boost - testred)^2)
+```
+By lowering the number of trees to 100, it lowered the MSE significantly but the other boosting model performed better. Changing shrinkage value improved the model with 1000 tree iterations. 
+
+Boosting performed better than bagging and random forest ! 
+
+Boosting from the 3 classes of quality and not as numeric:
+```{r}
+set.seed(1)
+boost.red <- gbm(quality ~ .-quality, data = red_data2[train, ],
+    distribution = "gaussian", n.trees = 1000,
+    interaction.depth = 4)
+summary(boost.red)
+```
+Again we can see that alcohol and volatile acidity are the two most important variables. 
+
+Test MSE:
+```{r}
+yhat.boost <- predict(boost.red,
+    newdata = red_data2[-train, ], n.trees = 1000)
+mean((yhat.boost - test.num)^2)
+```
+
+Changing shrinkage:
+```{r}
+set.seed(1)
+boost.red <- gbm(quality ~ .-quality, data = red_data2[train, ],
+    distribution = "gaussian", n.trees = 500,
+    interaction.depth = 4)
+summary(boost.red)
+yhat.boost <- predict(boost.red,
+    newdata = red_data2[-train, ], n.trees = 500)
+mean((yhat.boost - test.num)^2)
+```
+It performed slightly better when changing the number of trees. 
+
+Boosting performed better than bagging and random forest ! 
 
 
 
