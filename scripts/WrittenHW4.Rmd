@@ -81,8 +81,7 @@ pr.out$rotation[,2] %>% abs() %>% sort(decreasing = TRUE)
 toplot <- data.frame(pr.out$x)
 quality <- red2$quality
 levels(quality) <- c(levels(quality))
-plot(toplot[,1], toplot[,2])
-points(col = quality)
+plot(toplot[,1], toplot[,2], col = quality)
 ```
 
 
