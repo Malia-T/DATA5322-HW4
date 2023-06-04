@@ -23,8 +23,8 @@ library(gbm)
 ## Load in Data
 
 ```{r chunk1}
-red <- read.csv('/Users/aves/DATA5322-HW4/data/winequality-red.csv',sep=',')
-white <-  read.csv('/Users/aves/DATA5322-HW4/data/winequality-white.csv',sep=',')
+red <- read.csv('../data/winequality-red.csv',sep=',')
+white <-  read.csv('../data/winequality-white.csv',sep=',')
 ```
 
 ## Exploratory Analysis 
@@ -44,7 +44,46 @@ unique(red$quality)
 Let's assign 3-4 as low quality wine, 5-6 as average quality wine, and 7-8 as high quality wine. 
 
 PCA:
+```{r}
+# red wine X input
+# get counts for each quality category
+quality.counts <- red %>% 
+  group_by(quality) %>%
+  count()
 
+ggplot(quality.counts, mapping = aes(quality, n)) +
+  geom_col() +
+  labs(x = "Quality", y = "Count", title = "Count of Observations for Category of Quality")
+
+X <- red %>% select(-quality)
+
+# scale data for SVD
+scaled_X <- scale(X)
+
+# use PCA with scaled data
+pr.out <- prcomp(X, scale = TRUE)
+
+# get percent variance explained by principal components
+pve <- pr.out$sdev^2 / sum(pr.out$sdev^2)
+
+plot(pve, ylab = "Proportion of Variance Explained", xlab = "Principal Component", main = "Variance by PC in Red Wine Data")
+
+# get most weighted variables
+## for the first PC, fixed acidity, citric acid, pH, and density are all highly weighted
+## pH is negatively weighted, which we can see when we remove the absolute value
+pr.out$rotation[,1] %>% sort(decreasing=TRUE)
+pr.out$rotation[,1] %>% abs() %>% sort(decreasing=TRUE)
+
+## second PC
+## total sulfur dioxide, free sulfur dioxide, volatile acidity, residual sugar all highly weighted
+pr.out$rotation[,2] %>% abs() %>% sort(decreasing = TRUE)
+
+# plot along first two principal components
+toplot <- data.frame(pr.out$x)
+quality <- red$quality
+levels(quality) <- c(levels(quality))
+plot(toplot[,1], toplot[,2], col = quality)
+```
 
 
 
