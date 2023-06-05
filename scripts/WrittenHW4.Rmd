@@ -35,7 +35,7 @@ red
 
 ## Models
 
-Unsupervised:
+### Unsupervised:
 
 The predictor variable is quality 
 ```{r}
@@ -82,7 +82,9 @@ pr.out$rotation[,2] %>% abs() %>% sort(decreasing = TRUE)
 toplot <- data.frame(pr.out$x)
 quality <- red$quality
 levels(quality) <- c(levels(quality))
-plot(toplot[,1], toplot[,2], col = quality)
+ggplot(toplot, mapping = aes(toplot[,1], toplot[,2], col = as.factor(quality))) +
+  geom_point() +
+  labs(x = "Principal Component 1",  y = "Principal Component 2", title = "First Two Principal Components and Quality", color = "Quality")
 ```
 
 
@@ -217,7 +219,7 @@ plot(hclust(dd, method = "complete"),
 ```
 
 
-Supervised Model: 
+### Supervised Model: 
 
 Decision Trees:
 Multi-class
