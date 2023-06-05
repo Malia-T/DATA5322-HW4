@@ -61,12 +61,18 @@ X <- red %>% select(-quality)
 scaled_X <- scale(X)
 
 # use PCA with scaled data
-pr.out <- prcomp(X, scale = TRUE)
+pr.out <- prcomp(scaled_X, scale = TRUE)
 
 # get percent variance explained by principal components
 pve <- pr.out$sdev^2 / sum(pr.out$sdev^2)
 
 plot(pve, ylab = "Proportion of Variance Explained", xlab = "Principal Component", main = "Variance by PC in Red Wine Data")
+
+# plot cumulative variance explained by principal components
+# we can see that the first 6 principal components account for ~80% of the variance explained
+plot(cumsum(pve), xlab = "Principal Component",
+    ylab = "Cumulative Proportion of Variance Explained",
+    ylim = c(0, 1), type = "b", main = "Cumulative Proportion of Variance Explained by Principal Components")
 
 # get most weighted variables
 ## for the first PC, fixed acidity, citric acid, pH, and density are all highly weighted
